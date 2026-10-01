@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Бриф: гостевые дома в Ростове Великом</title>
+<style>
+  :root{--bg:#f6f1e9;--card:#fff;--text:#3a2e27;--muted:#7a6b60;--accent:#7c5a3a;--line:#e2d8ca}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:17px/1.55 "Open Sans",system-ui,sans-serif}
+  main{max-width:720px;margin:0 auto;padding:24px 16px 64px}
+  h1{font-size:28px;line-height:1.25;margin:8px 0 12px}
+  h2{font-size:20px;margin:36px 0 12px;padding-top:8px;border-top:2px solid var(--line)}
+  .lead{color:var(--muted)}
+  .q{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;margin:0 0 14px}
+  .q .t{display:block;font-weight:600;margin-bottom:4px}
+  .hint{color:var(--muted);font-size:15px;margin:0 0 10px}
+  .opt{font-weight:400;color:var(--muted);font-size:14px;margin-left:6px}
+  .info{background:#efe6da;border-radius:8px;padding:14px 16px;margin:0 0 14px;font-size:16px}
+  input[type=text],textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid #cbbfae;border-radius:6px;background:#fff;color:inherit}
+  textarea{min-height:88px;resize:vertical}
+  .ch{display:flex;gap:10px;align-items:flex-start;padding:8px 0}
+  .ch input{margin-top:6px;width:18px;height:18px;accent-color:var(--accent);flex:none}
+  .ch span{flex:1}
+  .more{margin:4px 0 0 28px}
+  button{font:600 17px "Open Sans",sans-serif;background:var(--accent);color:#fff;border:0;border-radius:6px;padding:14px 28px;cursor:pointer;margin-top:12px}
+  button:hover{background:#6a4c30}
+  #done{display:none;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:24px}
+  pre{white-space:pre-wrap;background:#f0eadf;padding:12px;border-radius:6px;font-size:13px}
+  @media(max-width:480px){h1{font-size:24px}}
+</style>
+</head>
+<body>
+<main>
+<div id="formwrap">
+  <h1>Несколько вопросов перед началом работы над сайтом</h1>
+  <p class="lead">Ответьте, пожалуйста, так, как Вам удобно: где есть варианты, достаточно отметить один; где не знаете, пишите «не знаю». Вопросы с пометкой «необязательно» можно пропускать. На всё уйдёт около 10 минут. Ответы можно не отправлять за один раз: пока Вы не закрыли страницу, всё сохраняется в ней.</p>
+  <form id="f" novalidate></form>
+</div>
+<div id="done">
+  <h1>Спасибо, ответы получены</h1>
+  <p>Я изучу их и вернусь к Вам с уточнениями, если они понадобятся.</p>
+  <div id="debug"></div>
+</div>
+</main>
+
+<script>
+// Доставка ответов на почту через Web3Forms (публичный ключ, секрета в нём нет).
+// Если ключ убрать, форма работает в режиме заглушки: ответы только в консоли.
+// Позже можно переключить на свой скрипт или Telegram-бота: достаточно поменять эти две строки.
+const ENDPOINT = "https://api.web3forms.com/submit";
+const ACCESS_KEY = "1dbd9751-e71b-4aba-af40-08de26964960";
+
+// Вариант ответа: "текст" или ["текст", "подсказка для поля, которое появится при выборе"]
+const S = [
+ {h:"О бизнесе", q:[
+  {id:"rekv", t:"Реквизиты на сайте: ИП Балуков А.А., ИНН 500102985008. Они актуальны?", type:"radio", o:["Да, актуальны",["Нужно изменить","Что изменить"]]},
+  {id:"booking_now", t:"Как гости бронируют сейчас?", type:"check", o:["Только через форму бронирования (Bnovo) на сайте","Ещё по звонку","Ещё в мессенджерах","Через сайты-агрегаторы (Островок, Яндекс Путешествия и т.п.)",["Иначе","Как именно"]]},
+  {id:"phone", t:"Телефон +7 930 115-07-93 и время работы администратора «8:00–21:00» на сайте актуальны?", type:"radio", o:["Да",["Нужно изменить","Что изменить"]]},
+  {id:"goal", t:"Что, по Вашему мнению, должно измениться после запуска нового сайта?", type:"check", o:["Больше броней","Больше прямых броней (без агрегаторов)","Узнаваемость: чтобы о домах знали больше людей","Порядок: чтобы всё выглядело как единое целое",["Другое","Что именно"]]},
+  {id:"tone", t:"Как Вы обычно общаетесь с гостями?", type:"radio", o:["Официально, на «Вы»","По-дружески, тепло","По-разному"]},
+  {id:"unique", t:"Чем Вы отличаетесь от других гостевых домов в Ростове, кроме расположения?", type:"text", opt:1, big:1}
+ ]},
+ {h:"Цены и бронирование", q:[
+  {id:"prices", t:"Какую цену показывать на карточке дома?", hint:"Цены на сайте не подтягиваются автоматически из системы бронирования Bnovo — она с сайтом не связана напрямую. Поэтому цену на сайте нужно писать вручную. С вариантом «от N ₽» менять её придётся реже.", type:"radio", o:["«от N ₽ за ночь» (минимальная), а точная на выбранные даты видна в форме бронирования","Точную цену, например «Пт–Вс 19 500 ₽», как на нынешних сайтах",["Свой вариант","Опишите, как Вы видите"]]},
+  {id:"prices_update", t:"Если цены в Bnovo изменятся, как поправить их на сайте?", type:"radio", o:["Буду сообщать об изменениях, цены поменяют на сайте (в первые две недели после сдачи бесплатно, дальше за отдельную плату или в рамках поддержки)","Буду менять сам(а), Вы покажете мне, как это делать"]},
+  {id:"prepay", t:"Предоплата принимается через Bnovo, как сейчас?", type:"radio", o:["Да, так и оставляем",["Нужно иначе","Как именно"]]},
+  {id:"cancel", t:"Какие условия отмены брони указать на сайте?", hint:"Сейчас на сайтах написано «без штрафа за 7 дней до заезда, дальше штраф», а в форме бронирования Bnovo показано «Нет бесплатной отмены». Чтобы гость везде видел одно и то же, напишите условия для всех домов: за сколько дней можно отменить без штрафа и какой штраф потом.", type:"text", big:1},
+  {id:"gu_cap", t:"Городская усадьба: сколько спальных мест на самом деле?", hint:"На странице arenddoma.ru/gorodskaya-usadba встречаются два разных числа: в начале «4 спальных места в двух отдельных комнатах и 4 в проходных», ниже на той же странице «6 спальных мест в отдельных комнатах и 2 дополнительных на диване».", type:"radio", o:["4 в отдельных комнатах + 4 в проходных","6 в отдельных комнатах + 2 на диване",["Другое","Напишите, как правильно"]]},
+  {type:"info", t:"К сведению: при проверке цен на выходные в Bnovo я заметил, что надбавка применяется не ко всем выходным одинаково. Например, «Городская усадьба» на ночь с пятницы на субботу показана по 17 000 ₽ (как в будни), а с воскресенья на понедельник — по 19 500 ₽. Возможно, так и задумано; если нет, стоит проверить настройки цен в Bnovo. Отвечать не нужно, это для Вашей информации о том, что я заметил при подготовке."}
+ ]},
+ {h:"Дома и объекты", q:[
+  {id:"photos", t:"Есть ли у Вас новые фото домов, лучше в большом размере?", type:"radio", o:["Да, пришлю","Нет, используем те, что на текущих сайтах"]},
+  {id:"changes", t:"Что изменилось на объектах по сравнению с текущими сайтами: удобства, вместимость, правила, услуги?", type:"text", opt:1, big:1},
+  {id:"services", t:"Дополнительные услуги «Эко Терема»: лодка 1500 ₽/час, катер 1500 ₽/чел за 30 минут, велосипеды 250 ₽/час. Цены актуальны?", type:"radio", o:["Да, актуальны",["Изменились","Какие новые цены или услуги"]]},
+  {id:"services_valy", t:"Нужны ли дополнительные услуги (например, лодка, велосипеды) для «На Валах»?", type:"radio", o:["Нет",["Да","Какие услуги и по какой цене"]]},
+  {id:"absent", t:"«Чего нет в номере» (плита, тапочки, средства гигиены и т.п.). На «На Валах» это указано, на «Эко Терем» нет. Есть ли такой список для домов «Эко Терема»?", type:"radio", o:["Да, пришлю","Нет, не нужно"]}
+ ]},
+ {h:"Отзывы и гости", q:[
+  {id:"yamaps", t:"Ссылки на карточки «Эко Терем» и «На Валах» в Яндекс Картах (у них отдельные отзывы). Кто владелец карточек?", type:"text", opt:1, big:1},
+  {id:"vip", t:"У Вас останавливались известные люди. Есть ли фото с ними и можно ли их публиковать?", type:"radio", o:["Да, есть и можно публиковать","Есть, но публиковать нельзя","Нет фото"]}
+ ]},
+ {h:"Технические вопросы", q:[
+  {id:"tilda_plan", t:"Какой тариф Tilda сейчас на сайте по юридической деятельности?", type:"radio", o:["Personal","Business","Не знаю"]},
+  {id:"tilda", t:"Как поступить со вторым сайтом (домики)?", hint:"Тариф Personal (500 ₽/мес при оплате за год, 750 ₽ помесячно) позволяет один сайт, Business (1000 ₽/мес при оплате за год, 1250 ₽ помесячно) — до пяти сайтов. Два тарифа Personal стоят столько же, сколько один Business. Тариф оплачиваете Вы.", type:"radio", o:["Сайт домов — на этом же аккаунте (скорее всего, потребуется Business)","Сайт домов — отдельным аккаунтом и отдельным тарифом","Не знаю, обсудим"]},
+  {id:"domain", t:"Какой домен использовать для нового сайта?", hint:"Если сайт останется на старом домене, то со стороны поисковика он унаследует его историю. Я помню из нашего общения, что раньше сайты, возможно, продвигали способами, которые поисковики не одобряют. Новый домен позволяет начать с чистого листа. Решение за Вами.", type:"radio", o:["Остаёмся на старом домене (есть доступ к нему)","Новый домен, а на старых можно поставить страницу «Мы переехали» (для этого нужен доступ к панели управления старыми доменами)","Новый домен, старые не трогаем (доступа к старым нет)","Не знаю, обсудим",["Другой вариант","Опишите"]]},
+  {id:"metrika", t:"Есть ли доступ к Яндекс Метрике старых сайтов?", type:"radio", o:["Да, есть","Нет, заведём заново","Не знаю"]},
+  {id:"bnovo", t:"Для настройки оформления формы бронирования мне нужен доступ в Bnovo.", hint:"Я использую его только для настроек внешнего вида формы. Данные броней и гостей я не открываю и не использую. Обычно доступ выдаётся созданием отдельного сотрудника (Настройки → Пользователи → Новый сотрудник) с доступом только к «Каналам продаж»; после сдачи Вы можете удалить этого пользователя.", type:"radio", o:["Согласен, выдам доступ","Предпочитаю сам настроить по моей подсказке","Обсудим"]}
+ ]},
+ {h:"Общее", q:[
+  {id:"annoy", t:"Что раздражало на старых сайтах, чего точно не должно быть на новом?", type:"text", opt:1, big:1},
+  {id:"like", t:"Видели ли Вы сайты гостевых домов, которые понравились? Пришлите ссылки и напишите, что именно понравилось.", type:"text", opt:1, big:1},
+  {id:"after", t:"Кто будет обновлять сайт после сдачи?", type:"radio", o:["Сам(а), покажите как","Буду обращаться к Вам","Не решил(а)"]},
+  {id:"extra", t:"Дополнительно", hint:"Напишите всё, что считаете важным и чего нет в вопросах выше: пожелания, опасения, идеи.", type:"text", opt:1, big:1} ]}
+];
+
+const form = document.getElementById("f");
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+S.forEach(sec=>{
+  const h=document.createElement("h2");h.textContent=sec.h;form.appendChild(h);
+  sec.q.forEach(q=>{
+    const d=document.createElement("div");
+    if(q.type==="info"){d.className="info";d.textContent=q.t;form.appendChild(d);return;}
+    d.className="q";d.dataset.q=q.id;
+    let html=`<div class="t">${esc(q.t)}${q.opt?'<span class="opt">необязательно</span>':''}</div>`;
+    if(q.hint) html+=`<p class="hint">${esc(q.hint)}</p>`;
+    if(q.type==="text"){
+      html+= q.big?`<textarea name="${q.id}"></textarea>`:`<input type="text" name="${q.id}">`;
+    } else {
+      const t=q.type==="radio"?"radio":"checkbox";
+      q.o.forEach(o=>{
+        const v=Array.isArray(o)?o[0]:o, ask=Array.isArray(o)?o[1]:"";
+        html+=`<label class="ch"><input type="${t}" name="${q.id}" value="${esc(v)}"${ask?` data-ask="${esc(ask)}"`:""}><span>${esc(v)}</span></label>`;
+      });
+      html+=`<div class="more" hidden><input type="text" name="${q.id}__more"></div>`;
+    }
+    d.innerHTML=html;form.appendChild(d);
+  });
+});
+const btn=document.createElement("button");btn.type="submit";btn.textContent="Отправить ответы";form.appendChild(btn);
+
+// поле уточнения показываем, только когда отмечен вариант с подсказкой
+function syncMore(q){
+  const box=q.querySelector(".more");if(!box)return;
+  const on=[...q.querySelectorAll("input[data-ask]")].find(i=>i.checked);
+  box.hidden=!on;
+  if(on)box.firstElementChild.placeholder=on.dataset.ask;
+}
+form.addEventListener("change",e=>{const q=e.target.closest(".q");if(q)syncMore(q);});
+
+// сбор ответов
+function collect(){
+  const data={};
+  S.forEach(sec=>sec.q.forEach(q=>{
+    if(!q.id)return;
+    if(q.type==="text"){data[q.id]=form.elements[q.id].value.trim();return;}
+    const sel=[...form.querySelectorAll(`[name="${q.id}"]:checked`)].map(i=>i.value);
+    data[q.id]=q.type==="radio"?(sel[0]||""):sel;
+    const more=form.elements[q.id+"__more"];
+    const box=more.parentElement;
+    if(!box.hidden&&more.value.trim())data[q.id+"__more"]=more.value.trim();
+  }));
+  return data;
+}
+
+// автосохранение в браузере, чтобы можно было продолжить позже
+const KEY="brief-rostov-draft";
+function save(){try{localStorage.setItem(KEY,JSON.stringify(collect()));}catch(e){}}
+function restore(){
+  try{
+    const d=JSON.parse(localStorage.getItem(KEY)||"null");if(!d)return;
+    S.forEach(sec=>sec.q.forEach(q=>{
+      if(!q.id)return;
+      if(q.type==="text"){form.elements[q.id].value=d[q.id]||"";return;}
+      const vals=[].concat(d[q.id]||[]);
+      form.querySelectorAll(`[name="${q.id}"]`).forEach(i=>{i.checked=vals.includes(i.value);});
+      form.elements[q.id+"__more"].value=d[q.id+"__more"]||"";
+      syncMore(form.querySelector(`[data-q="${q.id}"]`));
+    }));
+  }catch(e){}
+}
+form.addEventListener("input",save);
+form.addEventListener("change",save);
+restore();
+
+form.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const data=collect();
+  data._sent=new Date().toISOString();
+  if(ENDPOINT&&ACCESS_KEY){
+    // письмо читаемое: «вопрос → ответ», по порядку, с уточнениями
+    const payload={access_key:ACCESS_KEY,subject:"Бриф: гостевые дома в Ростове Великом",from_name:"Бриф клиента"};
+    let n=0;
+    S.forEach(sec=>sec.q.forEach(q=>{
+      if(!q.id)return;
+      n++;
+      let a=[].concat(data[q.id]||[]).join("; ");
+      if(data[q.id+"__more"])a+=(a?" — ":"")+data[q.id+"__more"];
+      payload[String(n).padStart(2,"0")+". "+q.t]=a||"(без ответа)";
+    }));
+    try{
+      const r=await fetch(ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(payload)});
+      const j=await r.json();
+      if(!j.success)throw new Error(j.message||"fail");
+    }catch(err){alert("Не получилось отправить. Проверьте интернет и нажмите ещё раз. Ваши ответы сохранены на этой странице.");return;}
+  } else {
+    // ЗАГЛУШКА: реальная доставка не подключена. Ответы только в консоли, а при ?debug ещё и на экране.
+    console.log("BRIEF", data);
+    if(location.search.includes("debug")){
+      document.getElementById("debug").innerHTML="<p><b>Режим проверки (доставка не подключена):</b></p><pre>"+esc(JSON.stringify(data,null,2))+"</pre>";
+    }
+  }
+  try{localStorage.removeItem(KEY);}catch(e){}
+  document.getElementById("formwrap").style.display="none";
+  document.getElementById("done").style.display="block";
+  window.scrollTo(0,0);
+});
+</script>
+</body>
+</html>
